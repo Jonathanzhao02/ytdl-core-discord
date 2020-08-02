@@ -59,6 +59,7 @@ function getInfoCallback(stream, info, options) {
 			if (stream._isDestroyed) return;
 			stream.write(data);
 		}).on('end', () => {
+			ytdlDownload.destroy();
 			demuxer.destroy();
 		});
 	} else {
