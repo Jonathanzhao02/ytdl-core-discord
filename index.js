@@ -50,7 +50,9 @@ function getInfoCallback(stream, info, options) {
 		stream.emit('info', info, format);
 		if (stream._isDestroyed) return;
 		const demuxer = new prism.opus.WebmDemuxer();
-		const ytdlDownload = ytdl.downloadFromInfo(info, options)
+		const ytdlDownload = ytdl.downloadFromInfo(info, options).on('progress', (length, downloaded, total) => {
+			stream.emit('progress', length, downloaded, total);
+		});
 		stream.destroy = () => {
 			stream._isDestroyed = true;
 			demuxer.destroy();
@@ -67,6 +69,7 @@ function getInfoCallback(stream, info, options) {
 		if (!bestFormat) throw new Error('No suitable format found');
 		stream.emit('info', info, bestFormat);
 		if (stream._isDestroyed) return;
+		let downloaded = 0;
 		const transcoder = new prism.FFmpeg({
 			args: [
 				'-reconnect', '1',
@@ -86,6 +89,8 @@ function getInfoCallback(stream, info, options) {
 				opus.end();
 				return;
 			}
+			downloaded += data.length;
+			stream.emit('progress', data.length, downloaded, bestFormat.contentLength);
 			stream.write(data);
 		}).on('close', () => {
 			transcoder.destroy();
