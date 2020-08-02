@@ -55,13 +55,15 @@ function getInfoCallback(stream, info, options) {
 		});
 		stream.destroy = () => {
 			stream._isDestroyed = true;
-			demuxer.destroy();
+			demuxer.end();
 		}
 		ytdlDownload.pipe(demuxer).on('data', data => {
 			if (stream._isDestroyed) return;
 			stream.write(data);
-		}).on('end', () => {
+		}).on('close', () => {
+			ytdlDownload.unpipe();
 			ytdlDownload.destroy();
+			demuxer.unpipe();
 			demuxer.destroy();
 		});
 	} else {
@@ -93,7 +95,9 @@ function getInfoCallback(stream, info, options) {
 			stream.emit('progress', data.length, downloaded, bestFormat.contentLength);
 			stream.write(data);
 		}).on('close', () => {
+			transcoder.unpipe();
 			transcoder.destroy();
+			opus.unpipe();
 			opus.destroy();
 		});
 	}
